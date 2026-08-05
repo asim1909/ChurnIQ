@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import textwrap
 
 import streamlit as st
 
@@ -10,20 +11,18 @@ STYLE_FILE = ASSETS_DIR / "style.css"
 
 
 def inject_css() -> None:
-    """Load the shared enterprise theme into Streamlit."""
-
+    """Load the shared minimalist enterprise theme into Streamlit."""
     if STYLE_FILE.exists():
         st.markdown(f"<style>{STYLE_FILE.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
 
 def page_header(title: str, subtitle: str, badge: str | None = None) -> None:
-    """Render a consistent hero banner."""
-
-    badge_html = f'<span class="risk-pill risk-medium">{badge}</span>' if badge else ""
-    st.markdown(
+    """Render a minimalist enterprise hero header."""
+    badge_html = f'<span class="trend-pill neutral">{badge}</span>' if badge else ""
+    html = textwrap.dedent(
         f"""
         <div class="hero-shell">
-          <div class="hero-topline">AI CHURN INTELLIGENCE PLATFORM</div>
+          <div class="hero-topline">⚡ CHURNIQ ENTERPRISE PLATFORM</div>
           <div class="hero-body">
             <div class="hero-copy">
               <h1 class="hero-title">{title}</h1>
@@ -32,56 +31,117 @@ def page_header(title: str, subtitle: str, badge: str | None = None) -> None:
             <div class="hero-meta">{badge_html}</div>
           </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    ).strip()
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def section_header(title: str, subtitle: str | None = None, badge: str | None = None) -> None:
-    """Render a polished section header for dashboard content blocks."""
-
-    subtitle_html = f'<div class="section-subtitle">{subtitle}</div>' if subtitle else ""
-    badge_html = f'<span class="risk-pill risk-low">{badge}</span>' if badge else ""
-    st.markdown(
+    """Render a clean card-style header."""
+    badge_html = f'<span class="trend-pill neutral">{badge}</span>' if badge else ""
+    subtitle_html = f'<div style="color:#64748b; font-size:0.85rem; margin-top:0.2rem;">{subtitle}</div>' if subtitle else ""
+    html = textwrap.dedent(
         f"""
-        <div class="section-heading">
-          <div class="section-heading-copy">
-            <div class="section-kicker">Section</div>
-            <h2 class="section-title">{title}</h2>
-            {subtitle_html}
+        <div class="card-header-row">
+          <div class="card-title-group">
+            <div>
+              <div class="card-kicker">{title}</div>
+              {subtitle_html}
+            </div>
           </div>
-          <div class="section-heading-meta">{badge_html}</div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            {badge_html}
+          </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    ).strip()
+    st.markdown(html, unsafe_allow_html=True)
 
 
-def kpi_card(label: str, value: str, hint: str | None = None) -> None:
-    """Render a single KPI card."""
+def kpi_card(
+    label: str,
+    value: str,
+    hint: str | None = None,
+    icon: str | None = None,
+    delta: str | None = None,
+    delta_type: str = "up",
+) -> None:
+    """Render a minimalist white KPI card with optional trend pill and icon."""
+    delta_class = "up" if delta_type == "up" else ("down" if delta_type == "down" else "neutral")
+    arrow = "↗" if delta_type == "up" else ("↘" if delta_type == "down" else "•")
+    delta_html = f'<span class="trend-pill {delta_class}">{arrow} {delta}</span>' if delta else ""
+    hint_html = f'<div class="kpi-hint"><span>💡</span> {hint}</div>' if hint else ""
+    icon_html = f'<span style="font-size:1.1rem; opacity:0.85;">{icon}</span>' if icon else ""
 
-    hint_html = f'<div class="kpi-hint">{hint}</div>' if hint else ""
-    st.markdown(
+    html = textwrap.dedent(
         f"""
         <div class="kpi-card">
-          <div class="kpi-label">{label}</div>
-          <div class="kpi-value">{value}</div>
+          <div class="kpi-card-top">
+            <div class="kpi-label">{label}</div>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              {delta_html}
+              {icon_html}
+            </div>
+          </div>
+          <div class="kpi-value-group">
+            <div class="kpi-value">{value}</div>
+          </div>
           {hint_html}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    ).strip()
+    st.markdown(html, unsafe_allow_html=True)
+
+
+def list_item_row(title: str, meta: str, value: str, icon: str = "📦") -> str:
+    """Return clean HTML snippet for a list row."""
+    return textwrap.dedent(
+        f"""
+        <div class="list-item-row">
+          <div class="list-item-left">
+            <div class="list-item-thumb">{icon}</div>
+            <div>
+              <div class="list-item-title">{title}</div>
+              <div class="list-item-meta">{meta}</div>
+            </div>
+          </div>
+          <div class="list-item-value">{value}</div>
+        </div>
+        """
+    ).strip()
+
+
+def render_insight_cards(insights: list[str]) -> None:
+    """Render executive insights as minimal visual cards."""
+    icons = ["⚡", "💡", "📈", "🛡️", "🎯"]
+    cards_html = ""
+    for idx, insight in enumerate(insights):
+        icon = icons[idx % len(icons)]
+        card_class = "insight-card"
+        if "churn" in insight.lower() or "vulnerable" in insight.lower() or "risk" in insight.lower():
+            card_class += " warn"
+        if "critical" in insight.lower() or "high" in insight.lower():
+            card_class += " danger"
+        cards_html += textwrap.dedent(
+            f"""
+            <div class="{card_class}">
+              <div class="insight-icon">{icon}</div>
+              <div class="insight-text">{insight}</div>
+            </div>
+            """
+        ).strip()
+    st.markdown(cards_html, unsafe_allow_html=True)
 
 
 def risk_class(level: str) -> str:
     return {
-        "Very Low Risk": "risk-very-low",
-        "Low Risk": "risk-low",
-        "Medium Risk": "risk-medium",
-        "High Risk": "risk-high",
-        "Critical Risk": "risk-critical",
-    }.get(level, "risk-medium")
+        "Very Low Risk": "trend-pill up",
+        "Low Risk": "trend-pill up",
+        "Medium Risk": "trend-pill neutral",
+        "High Risk": "trend-pill down",
+        "Critical Risk": "trend-pill down",
+    }.get(level, "trend-pill neutral")
 
 
 def risk_badge(level: str) -> str:
-    return f'<span class="risk-pill {risk_class(level)}">{level}</span>'
+    return f'<span class="{risk_class(level)}">{level}</span>'

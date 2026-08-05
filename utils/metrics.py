@@ -17,7 +17,7 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
 )
-from sklearn.model_selection import learning_curve, StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, learning_curve
 
 from .preprocessing import get_feature_names
 
@@ -25,6 +25,44 @@ try:
     import shap  # type: ignore
 except Exception:  # pragma: no cover - optional dependency may be blocked by environment policy
     shap = None
+
+
+def apply_chart_theme(fig: go.Figure, title: str = "", height: int = 360) -> go.Figure:
+    """Apply minimalist light theme and styling to Plotly figures matching reference design."""
+    fig.update_layout(
+        title=dict(
+            text=f"<b>{title.upper()}</b>" if title else "",
+            font=dict(family="Plus Jakarta Sans, sans-serif", size=12, color="#475569"),
+            x=0.0,
+            y=0.98,
+        ),
+        template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Plus Jakarta Sans, sans-serif", color="#64748b", size=11),
+        height=height,
+        margin=dict(l=40, r=20, t=45, b=40),
+        hoverlabel=dict(
+            bgcolor="#0f172a",
+            font_color="#f8fafc",
+            font_size=12,
+            font_family="Plus Jakarta Sans, sans-serif",
+            bordercolor="#334155",
+        ),
+        xaxis=dict(
+            gridcolor="#f1f5f9",
+            griddash="dash",
+            zerolinecolor="#e2e8f0",
+            tickfont=dict(size=10, color="#64748b"),
+        ),
+        yaxis=dict(
+            gridcolor="#f1f5f9",
+            griddash="dash",
+            zerolinecolor="#e2e8f0",
+            tickfont=dict(size=10, color="#64748b"),
+        ),
+    )
+    return fig
 
 
 def compute_classification_metrics(y_true: Iterable[int], y_prob: Iterable[float], threshold: float = 0.5) -> dict[str, float]:
@@ -45,18 +83,20 @@ def confusion_matrix_figure(y_true: Iterable[int], y_prob: Iterable[float], thre
     y_prob_arr = np.asarray(list(y_prob))
     y_pred = (y_prob_arr >= threshold).astype(int)
     matrix = confusion_matrix(y_true_arr, y_pred)
-    return go.Figure(
+    fig = go.Figure(
         data=go.Heatmap(
             z=matrix,
             x=["Predicted 0", "Predicted 1"],
             y=["Actual 0", "Actual 1"],
-            colorscale=[[0, "#0f172a"], [1, "#4cc9f0"]],
+            colorscale=[[0, "#f8fafc"], [0.5, "#bae6fd"], [1, "#0ea5e9"]],
             showscale=False,
             text=matrix,
             texttemplate="%{text}",
+            textfont=dict(size=14, color="#0f172a", family="JetBrains Mono"),
             hovertemplate="%{y} vs %{x}<br>Count=%{z}<extra></extra>",
         )
-    ).update_layout(title="Confusion Matrix", template="plotly_dark", height=360)
+    )
+    return apply_chart_theme(fig, "Confusion Matrix", 360)
 
 
 def roc_curve_figure(y_true: Iterable[int], y_prob: Iterable[float]) -> go.Figure:
@@ -65,10 +105,20 @@ def roc_curve_figure(y_true: Iterable[int], y_prob: Iterable[float]) -> go.Figur
     fpr, tpr, _ = roc_curve(y_true_arr, y_prob_arr)
     score = auc(fpr, tpr)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=fpr, y=tpr, mode="lines", name=f"ROC AUC = {score:.3f}", line=dict(color="#4cc9f0", width=3)))
-    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Baseline", line=dict(color="#64748b", dash="dash")))
-    fig.update_layout(title="ROC Curve", xaxis_title="False Positive Rate", yaxis_title="True Positive Rate", template="plotly_dark", height=360)
-    return fig
+    fig.add_trace(
+        go.Scatter(
+            x=fpr,
+            y=tpr,
+            mode="lines",
+            name=f"ROC AUC = {score:.3f}",
+            line=dict(color="#0ea5e9", width=3, shape="spline"),
+            fill="tozeroy",
+            fillcolor="rgba(14, 165, 233, 0.08)",
+        )
+    )
+    fig.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Baseline", line=dict(color="#cbd5e1", dash="dash", width=1.5)))
+    fig.update_layout(xaxis_title="False Positive Rate", yaxis_title="True Positive Rate")
+    return apply_chart_theme(fig, "ROC Curve", 360)
 
 
 def precision_recall_curve_figure(y_true: Iterable[int], y_prob: Iterable[float]) -> go.Figure:
@@ -77,9 +127,19 @@ def precision_recall_curve_figure(y_true: Iterable[int], y_prob: Iterable[float]
     precision, recall, _ = precision_recall_curve(y_true_arr, y_prob_arr)
     score = auc(recall, precision)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=recall, y=precision, mode="lines", name=f"PR AUC = {score:.3f}", line=dict(color="#7c3aed", width=3)))
-    fig.update_layout(title="Precision-Recall Curve", xaxis_title="Recall", yaxis_title="Precision", template="plotly_dark", height=360)
-    return fig
+    fig.add_trace(
+        go.Scatter(
+            x=recall,
+            y=precision,
+            mode="lines",
+            name=f"PR AUC = {score:.3f}",
+            line=dict(color="#6366f1", width=3, shape="spline"),
+            fill="tozeroy",
+            fillcolor="rgba(99, 102, 241, 0.08)",
+        )
+    )
+    fig.update_layout(xaxis_title="Recall", yaxis_title="Precision")
+    return apply_chart_theme(fig, "Precision-Recall Curve", 360)
 
 
 def learning_curve_figure(pipeline, X: pd.DataFrame, y: Iterable[int]) -> go.Figure:
@@ -96,10 +156,10 @@ def learning_curve_figure(pipeline, X: pd.DataFrame, y: Iterable[int]) -> go.Fig
     train_mean = train_scores.mean(axis=1)
     valid_mean = valid_scores.mean(axis=1)
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=train_sizes, y=train_mean, mode="lines+markers", name="Training ROC AUC", line=dict(color="#2dd4bf", width=3)))
+    fig.add_trace(go.Scatter(x=train_sizes, y=train_mean, mode="lines+markers", name="Training ROC AUC", line=dict(color="#10b981", width=3)))
     fig.add_trace(go.Scatter(x=train_sizes, y=valid_mean, mode="lines+markers", name="Validation ROC AUC", line=dict(color="#f59e0b", width=3)))
-    fig.update_layout(title="Learning Curve", xaxis_title="Training Examples", yaxis_title="ROC AUC", template="plotly_dark", height=360)
-    return fig
+    fig.update_layout(xaxis_title="Training Examples", yaxis_title="ROC AUC")
+    return apply_chart_theme(fig, "Learning Curve", 360)
 
 
 def feature_importance_frame(artifacts, sample_frame: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -126,30 +186,29 @@ def feature_importance_figure(frame: pd.DataFrame, limit: int = 15) -> go.Figure
             x=top["importance"],
             y=top["feature"],
             orientation="h",
-            marker=dict(color="#4cc9f0"),
+            marker=dict(color="#334155", cornerradius=4),
         )
     )
-    fig.update_layout(title="Feature Importance", xaxis_title="Relative Importance", yaxis_title="", template="plotly_dark", height=max(420, 28 * len(top) + 160))
-    return fig
+    fig.update_layout(xaxis_title="Relative Importance", yaxis_title="")
+    return apply_chart_theme(fig, "Feature Importance", max(420, 28 * len(top) + 120))
 
 
 def correlation_heatmap_figure(df: pd.DataFrame) -> go.Figure:
     numeric_df = df.select_dtypes(include=[np.number]).copy()
     if numeric_df.empty:
-        return go.Figure().update_layout(title="Correlation Heatmap", template="plotly_dark")
+        return apply_chart_theme(go.Figure(), "Correlation Heatmap", 400)
     corr = numeric_df.corr().fillna(0)
     fig = go.Figure(
         data=go.Heatmap(
             z=corr.values,
             x=corr.columns,
             y=corr.columns,
-            colorscale="Blues",
+            colorscale=[[0, "#6366f1"], [0.5, "#ffffff"], [1, "#0ea5e9"]],
             zmin=-1,
             zmax=1,
         )
     )
-    fig.update_layout(title="Correlation Heatmap", template="plotly_dark", height=600)
-    return fig
+    return apply_chart_theme(fig, "Correlation Heatmap", 420)
 
 
 def shap_explanation(artifacts, customer_frame: pd.DataFrame, background_frame: pd.DataFrame | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
