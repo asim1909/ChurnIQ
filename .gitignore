@@ -1,0 +1,61 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test and coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/cache/
+.streamlit/config.toml.swp
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.tmp
+*.bak
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Generated model artifacts
+models/*.pkl
+models/*.joblib
+models/*.sav
+
+# Generated screenshots or exports
+screenshots/*.png
+screenshots/*.jpg
+screenshots/*.jpeg
+screenshots/*.webp
+screenshots/*.gif
