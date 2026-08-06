@@ -14,7 +14,7 @@ from utils.metrics import (
     feature_importance_frame,
 )
 from utils.preprocessing import load_artifacts, load_customer_data, revenue_at_risk, score_customers
-from utils.ui import inject_css, kpi_card, page_header, render_insight_cards, section_header
+from utils.ui import inject_css, kpi_card, page_header, render_data_uploader_sidebar, render_insight_cards, section_header
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,9 +26,8 @@ st.set_page_config(
 )
 
 
-@st.cache_data(show_spinner=False)
 def load_dashboard_state() -> tuple[pd.DataFrame, object]:
-    data = load_customer_data()
+    data = render_data_uploader_sidebar()
     artifacts = load_artifacts()
     scored = score_customers(data, artifacts)
     scored["Churn"] = pd.to_numeric(data["Churn"], errors="coerce").fillna(0).astype(int)

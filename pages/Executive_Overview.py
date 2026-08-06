@@ -9,7 +9,15 @@ import streamlit as st
 from utils.insights import generate_executive_insights
 from utils.metrics import apply_chart_theme
 from utils.preprocessing import load_artifacts, load_customer_data, revenue_at_risk, score_customers
-from utils.ui import inject_css, kpi_card, list_item_row, page_header, render_insight_cards, section_header
+from utils.ui import (
+    inject_css,
+    kpi_card,
+    list_item_row,
+    page_header,
+    render_data_uploader_sidebar,
+    render_insight_cards,
+    section_header,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,9 +29,8 @@ st.set_page_config(
 )
 
 
-@st.cache_data(show_spinner=False)
 def load_state() -> tuple[pd.DataFrame, object]:
-    data = load_customer_data()
+    data = render_data_uploader_sidebar()
     artifacts = load_artifacts()
     scored = score_customers(data, artifacts)
     scored["Churn"] = pd.to_numeric(data["Churn"], errors="coerce").fillna(0).astype(int)
@@ -33,10 +40,11 @@ def load_state() -> tuple[pd.DataFrame, object]:
 def render() -> None:
     inject_css()
     scored, artifacts = load_state()
+    source_name = st.session_state.get("data_source_name", "Default Portfolio")
     page_header(
         "Executive Overview",
         "Minimalist executive command center for portfolio retention, revenue exposure, and next-best actions.",
-        badge=f"Model: {artifacts.model_name}",
+        badge=f"Data: {source_name} | Model: {artifacts.model_name}",
     )
 
     filtered = scored.copy()

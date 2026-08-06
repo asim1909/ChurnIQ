@@ -145,3 +145,48 @@ def risk_class(level: str) -> str:
 
 def risk_badge(level: str) -> str:
     return f'<span class="{risk_class(level)}">{level}</span>'
+
+
+def render_data_uploader_sidebar() -> pd.DataFrame:
+    """Render a sidebar section for uploading custom CSV dataset and downloading template."""
+    from utils.preprocessing import load_customer_data
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📥 Data Source & Upload")
+
+    uploaded_file = st.sidebar.file_uploader(
+        "Upload Custom Customer CSV",
+        type=["csv"],
+        help="Upload your own customer dataset CSV to score churn risk and analyze your portfolio.",
+    )
+
+    if uploaded_file is not None:
+        try:
+            data = load_customer_data(uploaded_file, target_rows=0)
+            st.session_state["custom_data"] = data
+            st.session_state["data_source_name"] = uploaded_file.name
+            st.sidebar.success(f"Active: **{uploaded_file.name}** ({len(data):,} rows)")
+        except Exception as err:
+            st.sidebar.error(f"Error parsing CSV: {err}")
+
+    if "custom_data" in st.session_state:
+        if st.sidebar.button("🔄 Reset to Default Dataset", use_container_width=True):
+            del st.session_state["custom_data"]
+            if "data_source_name" in st.session_state:
+                del st.session_state["data_source_name"]
+            st.rerun()
+
+    # Template Download
+    default_df = load_customer_data()
+    template_csv = default_df.head(20).to_csv(index=False).encode("utf-8")
+    st.sidebar.download_button(
+        "📄 Download CSV Schema Template",
+        template_csv,
+        "churniq_csv_template.csv",
+        "text/csv",
+        use_container_width=True,
+    )
+
+    if "custom_data" in st.session_state:
+        return st.session_state["custom_data"]
+    return load_customer_data()

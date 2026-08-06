@@ -9,7 +9,7 @@ import streamlit as st
 from utils.metrics import shap_explanation
 from utils.preprocessing import customer_key_search, load_artifacts, load_customer_data, score_customers
 from utils.recommendations import recommend_retention_actions
-from utils.ui import inject_css, kpi_card, page_header, risk_badge, section_header
+from utils.ui import inject_css, kpi_card, page_header, render_data_uploader_sidebar, risk_badge, section_header
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -21,9 +21,8 @@ st.set_page_config(
 )
 
 
-@st.cache_data(show_spinner=False)
 def load_state() -> tuple[pd.DataFrame, object]:
-    data = load_customer_data()
+    data = render_data_uploader_sidebar()
     artifacts = load_artifacts()
     scored = score_customers(data, artifacts)
     scored["CustomerID"] = data["CustomerID"].astype(str)

@@ -247,12 +247,18 @@ def generate_demo_telco_data(n_rows: int = 2500, random_state: int = 42) -> pd.D
     )
 
 
-def load_customer_data(data_file: Path | str = DEFAULT_DATA_FILE, target_rows: int = 2500) -> pd.DataFrame:
-    path = Path(data_file)
-    if path.exists():
-        frame = clean_telco_frame(pd.read_csv(path))
+def load_customer_data(data_file: Any = DEFAULT_DATA_FILE, target_rows: int = 2500) -> pd.DataFrame:
+    if hasattr(data_file, "read"):
+        data_file.seek(0)
+        frame = clean_telco_frame(pd.read_csv(data_file))
+    elif isinstance(data_file, pd.DataFrame):
+        frame = clean_telco_frame(data_file)
     else:
-        frame = generate_demo_telco_data(target_rows)
+        path = Path(data_file)
+        if path.exists():
+            frame = clean_telco_frame(pd.read_csv(path))
+        else:
+            frame = generate_demo_telco_data(target_rows)
 
     frame = frame.copy()
     frame["TotalCharges"] = pd.to_numeric(frame.get("TotalCharges"), errors="coerce")
@@ -267,7 +273,7 @@ def load_customer_data(data_file: Path | str = DEFAULT_DATA_FILE, target_rows: i
         frame[column] = frame[column].fillna("Unknown")
     if frame["CustomerID"].duplicated().any():
         frame["CustomerID"] = [f"{cid}-{idx:04d}" for idx, cid in enumerate(frame["CustomerID"].astype(str), start=1)]
-    if len(frame) < target_rows:
+    if target_rows > 0 and len(frame) < target_rows:
         synthetic = generate_demo_telco_data(target_rows - len(frame), random_state=99)
         frame = pd.concat([frame, synthetic], ignore_index=True)
     frame = clean_telco_frame(frame)
